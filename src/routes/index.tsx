@@ -1,26 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Navbar } from "@/components/landing/Navbar";
+import { Hero } from "@/components/landing/Hero";
+import { Features } from "@/components/landing/Features";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { FAQ } from "@/components/landing/FAQ";
+import { Footer } from "@/components/landing/Footer";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "NeuroNote AI — Transform your notes into intelligent learning" },
+      { name: "description", content: "AI summaries, spaced-repetition flashcards, adaptive quizzes, and a RAG chat tutor for your own notes." },
+      { property: "og:title", content: "NeuroNote AI" },
+      { property: "og:description", content: "AI-powered study platform built for students." },
+    ],
+  }),
+  component: Landing,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function Landing() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main>
+      <Navbar />
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <FAQ />
+      <Footer />
+    </main>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
