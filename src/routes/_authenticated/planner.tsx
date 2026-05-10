@@ -38,7 +38,7 @@ function PlannerPage() {
     if (!title.trim() || !user) return;
     await supabase.from("tasks").insert({
       user_id: user.id, title, subject: subject || null,
-      due_date: date?.toISOString() ?? null, priority,
+      due_date: date?.toISOString() ?? null, priority: priority as "HIGH" | "MEDIUM" | "LOW",
     });
     setTitle(""); setSubject(""); setDate(undefined); setPriority("MEDIUM");
     await load();
