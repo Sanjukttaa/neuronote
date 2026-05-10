@@ -1,0 +1,160 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { motion } from "framer-motion";
+import { Upload as UploadIcon, FileText, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { Link } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_authenticated/uploads")({
+  component: UploadsPage,
+});
+
+type FileRow = {
+  id: string;
+  name: string;
+  type: string;
+  size_bytes: number | null;
+  text_content: string | null;
+  created_at: string;
+};
+
+async function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+function UploadsPage() {
+  const { user } = useAuth();
+  const [files, setFiles] = useState<FileRow[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("files")
+      .select("id,name,type,size_bytes,text_content,created_at")
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    else setFiles(data as FileRow[]);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onDrop = useCallback(async (accepted: File[]) => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      for (const f of accepted) {
+        const ext = f.name.split(".").pop()?.toLowerCase() || "";
+        const allowed = ["txt", "md", "markdown"];
+        if (!allowed.includes(ext)) {
+          toast.error(`${f.name}: only .txt and .md supported right now`);
+          continue;
+        }
+        const path = `${user.id}/${crypto.randomUUID()}-${f.name}`;
+        const { error: upErr } = await supabase.storage.from("uploads").upload(path, f);
+        if (upErr) { toast.error(upErr.message); continue; }
+        const text = await readFileAsText(f);
+        const { error: insErr } = await supabase.from("files").insert({
+          user_id: user.id,
+          name: f.name,
+          type: ext,
+          size_bytes: f.size,
+          storage_path: path,
+          text_content: text.slice(0, 500_000),
+        });
+        if (insErr) toast.error(insErr.message);
+        else toast.success(`Uploaded ${f.name}`);
+      }
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }, [user, load]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "text/plain": [".txt"], "text/markdown": [".md", ".markdown"] },
+  });
+
+  const remove = async (id: string, path?: string) => {
+    if (path) await supabase.storage.from("uploads").remove([path]);
+    await supabase.from("files").delete().eq("id", id);
+    await load();
+  };
+
+  const summarize = async (file: FileRow) => {
+    setProcessingId(file.id);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-process`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({ action: "summary", fileId: file.id, summaryType: "concise" }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      toast.success("Summary ready");
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
+      <div>
+        <h1 className="font-display text-3xl font-semibold">Uploads</h1>
+        <p className="text-sm text-muted-foreground">Drop your notes — we'll generate summaries, flashcards, and quizzes.</p>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+        {...(getRootProps() as any)}
+        className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-border bg-card/40"}`}
+      >
+        <input {...getInputProps()} />
+        <UploadIcon className="mx-auto mb-3 h-10 w-10 text-primary" />
+        <p className="font-medium">{isDragActive ? "Drop here" : "Drag & drop or click to upload"}</p>
+        <p className="mt-1 text-xs text-muted-foreground">.txt, .md (PDF/DOCX coming soon)</p>
+        {busy && <div className="absolute inset-0 grid place-items-center rounded-2xl bg-background/60"><Loader2 className="h-6 w-6 animate-spin" /></div>}
+      </motion.div>
+
+      <div className="grid gap-3">
+        {files.map((f) => (
+          <Card key={f.id} className="flex items-center gap-3 p-4">
+            <FileText className="h-5 w-5 text-ai" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium">{f.name}</div>
+              <div className="text-xs text-muted-foreground">{(f.size_bytes ?? 0) / 1000} kB · {new Date(f.created_at).toLocaleString()}</div>
+            </div>
+            <Badge variant="secondary">{f.type}</Badge>
+            <Button size="sm" onClick={() => summarize(f)} disabled={processingId === f.id}>
+              {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize</>}
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => remove(f.id)}><Trash2 className="h-4 w-4" /></Button>
+          </Card>
+        ))}
+        {files.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground">No files yet. <Link to="/dashboard" className="text-primary underline">Back</Link></p>
+        )}
+      </div>
+    </div>
+  );
+}
