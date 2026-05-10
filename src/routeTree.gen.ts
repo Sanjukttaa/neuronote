@@ -15,8 +15,15 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUploadsRouteImport } from './routes/_authenticated/uploads'
 import { Route as AuthenticatedSummariesRouteImport } from './routes/_authenticated/summaries'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedQuizzesRouteImport } from './routes/_authenticated/quizzes'
+import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticated/planner'
+import { Route as AuthenticatedFlashcardsRouteImport } from './routes/_authenticated/flashcards'
+import { Route as AuthenticatedExamRouteImport } from './routes/_authenticated/exam'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
+import { Route as AuthenticatedBookmarksRouteImport } from './routes/_authenticated/bookmarks'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -47,6 +54,31 @@ const AuthenticatedSummariesRoute = AuthenticatedSummariesRouteImport.update({
   path: '/summaries',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedQuizzesRoute = AuthenticatedQuizzesRouteImport.update({
+  id: '/quizzes',
+  path: '/quizzes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPlannerRoute = AuthenticatedPlannerRouteImport.update({
+  id: '/planner',
+  path: '/planner',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFlashcardsRoute = AuthenticatedFlashcardsRouteImport.update({
+  id: '/flashcards',
+  path: '/flashcards',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedExamRoute = AuthenticatedExamRouteImport.update({
+  id: '/exam',
+  path: '/exam',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -57,13 +89,30 @@ const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedBookmarksRoute = AuthenticatedBookmarksRouteImport.update({
+  id: '/bookmarks',
+  path: '/bookmarks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/bookmarks': typeof AuthenticatedBookmarksRoute
   '/chat': typeof AuthenticatedChatRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/exam': typeof AuthenticatedExamRoute
+  '/flashcards': typeof AuthenticatedFlashcardsRoute
+  '/planner': typeof AuthenticatedPlannerRoute
+  '/quizzes': typeof AuthenticatedQuizzesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/summaries': typeof AuthenticatedSummariesRoute
   '/uploads': typeof AuthenticatedUploadsRoute
 }
@@ -71,8 +120,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/bookmarks': typeof AuthenticatedBookmarksRoute
   '/chat': typeof AuthenticatedChatRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/exam': typeof AuthenticatedExamRoute
+  '/flashcards': typeof AuthenticatedFlashcardsRoute
+  '/planner': typeof AuthenticatedPlannerRoute
+  '/quizzes': typeof AuthenticatedQuizzesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/summaries': typeof AuthenticatedSummariesRoute
   '/uploads': typeof AuthenticatedUploadsRoute
 }
@@ -82,8 +138,15 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/bookmarks': typeof AuthenticatedBookmarksRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/exam': typeof AuthenticatedExamRoute
+  '/_authenticated/flashcards': typeof AuthenticatedFlashcardsRoute
+  '/_authenticated/planner': typeof AuthenticatedPlannerRoute
+  '/_authenticated/quizzes': typeof AuthenticatedQuizzesRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/summaries': typeof AuthenticatedSummariesRoute
   '/_authenticated/uploads': typeof AuthenticatedUploadsRoute
 }
@@ -93,8 +156,15 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/analytics'
+    | '/bookmarks'
     | '/chat'
     | '/dashboard'
+    | '/exam'
+    | '/flashcards'
+    | '/planner'
+    | '/quizzes'
+    | '/settings'
     | '/summaries'
     | '/uploads'
   fileRoutesByTo: FileRoutesByTo
@@ -102,8 +172,15 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/analytics'
+    | '/bookmarks'
     | '/chat'
     | '/dashboard'
+    | '/exam'
+    | '/flashcards'
+    | '/planner'
+    | '/quizzes'
+    | '/settings'
     | '/summaries'
     | '/uploads'
   id:
@@ -112,8 +189,15 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/signup'
+    | '/_authenticated/analytics'
+    | '/_authenticated/bookmarks'
     | '/_authenticated/chat'
     | '/_authenticated/dashboard'
+    | '/_authenticated/exam'
+    | '/_authenticated/flashcards'
+    | '/_authenticated/planner'
+    | '/_authenticated/quizzes'
+    | '/_authenticated/settings'
     | '/_authenticated/summaries'
     | '/_authenticated/uploads'
   fileRoutesById: FileRoutesById
@@ -169,6 +253,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSummariesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/quizzes': {
+      id: '/_authenticated/quizzes'
+      path: '/quizzes'
+      fullPath: '/quizzes'
+      preLoaderRoute: typeof AuthenticatedQuizzesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/planner': {
+      id: '/_authenticated/planner'
+      path: '/planner'
+      fullPath: '/planner'
+      preLoaderRoute: typeof AuthenticatedPlannerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/flashcards': {
+      id: '/_authenticated/flashcards'
+      path: '/flashcards'
+      fullPath: '/flashcards'
+      preLoaderRoute: typeof AuthenticatedFlashcardsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/exam': {
+      id: '/_authenticated/exam'
+      path: '/exam'
+      fullPath: '/exam'
+      preLoaderRoute: typeof AuthenticatedExamRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -183,19 +302,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/bookmarks': {
+      id: '/_authenticated/bookmarks'
+      path: '/bookmarks'
+      fullPath: '/bookmarks'
+      preLoaderRoute: typeof AuthenticatedBookmarksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedBookmarksRoute: typeof AuthenticatedBookmarksRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedExamRoute: typeof AuthenticatedExamRoute
+  AuthenticatedFlashcardsRoute: typeof AuthenticatedFlashcardsRoute
+  AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
+  AuthenticatedQuizzesRoute: typeof AuthenticatedQuizzesRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSummariesRoute: typeof AuthenticatedSummariesRoute
   AuthenticatedUploadsRoute: typeof AuthenticatedUploadsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedBookmarksRoute: AuthenticatedBookmarksRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedExamRoute: AuthenticatedExamRoute,
+  AuthenticatedFlashcardsRoute: AuthenticatedFlashcardsRoute,
+  AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
+  AuthenticatedQuizzesRoute: AuthenticatedQuizzesRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSummariesRoute: AuthenticatedSummariesRoute,
   AuthenticatedUploadsRoute: AuthenticatedUploadsRoute,
 }
