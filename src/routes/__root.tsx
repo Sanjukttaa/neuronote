@@ -90,6 +90,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
+  // dark by default
+  // (cannot set on <html> from here without scripts; using class on body via shell)
+
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
