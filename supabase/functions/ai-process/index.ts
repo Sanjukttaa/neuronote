@@ -82,7 +82,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, count: rows.length }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
+    if (action === "quiz") {
+      const { difficulty = "MEDIUM", count = 8 } = body;
+      const raw = await callAI([
+        { role: "system", content: `Return ONLY valid JSON: { "title": string, "questions": [{"stem": string, "type": "MCQ", "options": [string,string,string,string], "answer": string, "explanation": string}] }. Generate ${count} ${difficulty} multiple choice questions. answer must equal one of the options exactly.` },
+        { role: "user", content: `Topic source:\n${text}` },
+      ]);
+      const json = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      const { data: quiz, error: qe } = await supabase.from("quizzes")
+        .insert({ user_id: userId, file_id: file.id, title: json.title || `Quiz: ${file.name}`, difficulty })
+        .select().single();
+      if (qe) throw qe;
+      const qrows = (json.questions ?? []).map((q: any, i: number) => ({
+        quiz_id: quiz.id, stem: q.stem, type: "MCQ", options: q.options ?? [],
+        answer: q.answer, explanation: q.explanation ?? "", order: i,
+      }));
+      const { error: qre } = await supabase.from("questions").insert(qrows);
+      if (qre) throw qre;
+      return new Response(JSON.stringify({ ok: true, quizId: quiz.id, count: qrows.length }),
+        { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
     return new Response("Unknown action", { status: 400, headers: cors });
+
   } catch (e) {
     console.error(e);
     return new Response(String((e as Error).message), { status: 500, headers: cors });
