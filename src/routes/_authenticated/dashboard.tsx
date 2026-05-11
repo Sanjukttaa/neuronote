@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
 import { FileText, Layers, ClipboardList, Sparkles, Bot, Upload, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — NeuroNote AI" }] }),
@@ -12,6 +14,26 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({ summaries: 0, mastered: 0, attempts: 0, streak: 0 });
+  const [recent, setRecent] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [s, fc, qa, prof, files] = await Promise.all([
+        supabase.from("summaries").select("id", { count: "exact", head: true }),
+        supabase.from("flashcards").select("id", { count: "exact", head: true }).eq("mastered", true),
+        supabase.from("quiz_attempts").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("streak").maybeSingle(),
+        supabase.from("files").select("id,name").order("created_at", { ascending: false }).limit(5),
+      ]);
+      setStats({
+        summaries: s.count ?? 0, mastered: fc.count ?? 0, attempts: qa.count ?? 0,
+        streak: prof.data?.streak ?? 0,
+      });
+      setRecent(files.data ?? []);
+    })();
+  }, []);
+
   const name = user?.user_metadata?.name || user?.email?.split("@")[0] || "there";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
