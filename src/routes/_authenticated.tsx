@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Topbar } from "@/components/dashboard/Topbar";
+import { CommandPalette } from "@/components/dashboard/CommandPalette";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -29,6 +30,7 @@ function AuthLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
+        <CommandPalette />
         <AppSidebar />
         <div className="flex flex-1 flex-col">
           <Topbar />
