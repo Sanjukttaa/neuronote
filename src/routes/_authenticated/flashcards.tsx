@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 export const Route = createFileRoute("/_authenticated/flashcards")({
   component: FlashcardsPage,
@@ -109,9 +110,10 @@ function FlashcardsPage() {
             <Button onClick={() => review(4)}>Good</Button>
             <Button variant="secondary" onClick={() => review(5)}>Easy</Button>
           </div>
-          <p className="text-center text-xs text-muted-foreground">
-            Card {idx + 1} of {cards.length} · click to flip
-          </p>
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <span>Card {idx + 1} of {cards.length} · click to flip</span>
+            <BookmarkButton entityType="flashcard" entityId={card.id} size="sm" />
+          </div>
         </div>
       ) : (
         <Card className="p-12 text-center text-sm text-muted-foreground">

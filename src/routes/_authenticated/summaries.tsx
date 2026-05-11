@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 export const Route = createFileRoute("/_authenticated/summaries")({
   component: SummariesPage,
@@ -58,9 +59,15 @@ function SummariesPage() {
         </div>
         <Card className="p-6">
           {active ? (
-            <article className="prose prose-invert max-w-none prose-headings:font-display">
-              <ReactMarkdown>{active.content}</ReactMarkdown>
-            </article>
+            <>
+              <div className="mb-3 flex items-center justify-between">
+                <Badge variant="secondary">{active.type}</Badge>
+                <BookmarkButton entityType="summary" entityId={active.id} />
+              </div>
+              <article className="prose prose-invert max-w-none prose-headings:font-display">
+                <ReactMarkdown>{active.content}</ReactMarkdown>
+              </article>
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">Select a summary to read.</p>
           )}
