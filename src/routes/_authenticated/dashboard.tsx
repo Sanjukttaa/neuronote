@@ -52,7 +52,10 @@ function Dashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-streak/30 bg-streak/10 px-3 py-1.5 text-streak">
-            <Flame className="h-4 w-4" /><span className="text-sm font-medium">Day 0 · start your streak</span>
+            <Flame className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {stats.streak > 0 ? `Day ${stats.streak} streak 🔥` : "Day 0 · start your streak"}
+            </span>
           </div>
         </div>
         <div className="mt-6 flex flex-wrap gap-2">
@@ -67,21 +70,34 @@ function Dashboard() {
 
       <div className="grid gap-4 md:grid-cols-3">
         {[
-          { icon: FileText, label: "Summaries", value: "0" },
-          { icon: Layers, label: "Flashcards mastered", value: "0" },
-          { icon: ClipboardList, label: "Quizzes taken", value: "0" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-border/60 bg-card/50 p-5">
+          { icon: FileText, label: "Summaries", value: stats.summaries },
+          { icon: Layers, label: "Flashcards mastered", value: stats.mastered },
+          { icon: ClipboardList, label: "Quizzes taken", value: stats.attempts },
+        ].map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="rounded-xl border border-border/60 bg-card/50 p-5">
             <s.icon className="h-5 w-5 text-muted-foreground" />
             <p className="mt-3 text-sm text-muted-foreground">{s.label}</p>
             <p className="font-display text-3xl font-bold">{s.value}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card title="Recent files" empty="No files yet — upload your first PDF to get started." cta={{ label: "Upload", to: "/uploads" }} />
-        <Card title="Continue learning" empty="Generate flashcards from a file to start a session." cta={{ label: "Browse files", to: "/uploads" }} />
+        <Card title="Recent files" empty="No files yet — upload your first PDF to get started." cta={{ label: "Upload", to: "/uploads" }}>
+          {recent.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {recent.map((f) => (
+                <li key={f.id} className="flex items-center gap-2 truncate text-sm">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="truncate">{f.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card title="Continue learning" empty="Generate flashcards from a file to start a session." cta={{ label: "Browse files", to: "/flashcards" }} />
         <Card title="AI recommendations" empty="Take a quiz so the AI can spot your weak topics.">
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-ai/30 bg-ai/5 p-3 text-sm">
             <Sparkles className="h-4 w-4 text-ai" />
