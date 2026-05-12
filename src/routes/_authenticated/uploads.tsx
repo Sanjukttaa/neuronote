@@ -130,6 +130,10 @@ function UploadsPage() {
         }
       );
       if (!res.ok) throw new Error(await res.text());
+      if (file.folder_id) {
+        await supabase.from("summaries").update({ folder_id: file.folder_id })
+          .eq("file_id", file.id).is("folder_id", null);
+      }
       toast.success("Summary ready");
     } catch (e: any) {
       toast.error(e.message || "Failed");
