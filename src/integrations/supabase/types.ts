@@ -174,6 +174,7 @@ export type Database = {
           difficulty: number
           ease_factor: number
           file_id: string | null
+          folder_id: string | null
           front: string
           id: string
           interval_days: number
@@ -188,6 +189,7 @@ export type Database = {
           difficulty?: number
           ease_factor?: number
           file_id?: string | null
+          folder_id?: string | null
           front: string
           id?: string
           interval_days?: number
@@ -202,6 +204,7 @@ export type Database = {
           difficulty?: number
           ease_factor?: number
           file_id?: string | null
+          folder_id?: string | null
           front?: string
           id?: string
           interval_days?: number
@@ -216,6 +219,13 @@ export type Database = {
             columns: ["file_id"]
             isOneToOne: false
             referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flashcards_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
         ]
@@ -411,6 +421,7 @@ export type Database = {
           created_at: string
           difficulty: Database["public"]["Enums"]["quiz_difficulty"]
           file_id: string | null
+          folder_id: string | null
           id: string
           time_limit_seconds: number | null
           title: string
@@ -420,6 +431,7 @@ export type Database = {
           created_at?: string
           difficulty?: Database["public"]["Enums"]["quiz_difficulty"]
           file_id?: string | null
+          folder_id?: string | null
           id?: string
           time_limit_seconds?: number | null
           title: string
@@ -429,6 +441,7 @@ export type Database = {
           created_at?: string
           difficulty?: Database["public"]["Enums"]["quiz_difficulty"]
           file_id?: string | null
+          folder_id?: string | null
           id?: string
           time_limit_seconds?: number | null
           title?: string
@@ -440,6 +453,13 @@ export type Database = {
             columns: ["file_id"]
             isOneToOne: false
             referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quizzes_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
         ]
@@ -476,6 +496,7 @@ export type Database = {
           content: string
           created_at: string
           file_id: string
+          folder_id: string | null
           id: string
           key_points: Json | null
           type: Database["public"]["Enums"]["summary_type"]
@@ -486,6 +507,7 @@ export type Database = {
           content: string
           created_at?: string
           file_id: string
+          folder_id?: string | null
           id?: string
           key_points?: Json | null
           type: Database["public"]["Enums"]["summary_type"]
@@ -496,6 +518,7 @@ export type Database = {
           content?: string
           created_at?: string
           file_id?: string
+          folder_id?: string | null
           id?: string
           key_points?: Json | null
           type?: Database["public"]["Enums"]["summary_type"]
@@ -508,6 +531,13 @@ export type Database = {
             columns: ["file_id"]
             isOneToOne: false
             referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "summaries_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
         ]
