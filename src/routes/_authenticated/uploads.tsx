@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion } from "framer-motion";
 import { Upload as UploadIcon, FileText, Sparkles, Loader2, Trash2 } from "lucide-react";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "@tanstack/react-router";
+import { FoldersPanel, MoveToFolder } from "@/components/FoldersPanel";
 
 export const Route = createFileRoute("/_authenticated/uploads")({
   component: UploadsPage,
@@ -21,6 +22,8 @@ type FileRow = {
   type: string;
   size_bytes: number | null;
   text_content: string | null;
+  folder_id: string | null;
+  storage_path: string | null;
   created_at: string;
 };
 
@@ -38,17 +41,34 @@ function UploadsPage() {
   const [files, setFiles] = useState<FileRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [folder, setFolder] = useState<"all" | "unfiled" | string>("all");
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from("files")
-      .select("id,name,type,size_bytes,text_content,created_at")
+      .select("id,name,type,size_bytes,text_content,folder_id,storage_path,created_at")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     else setFiles(data as FileRow[]);
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const filtered = useMemo(() => {
+    if (folder === "all") return files;
+    if (folder === "unfiled") return files.filter((f) => !f.folder_id);
+    return files.filter((f) => f.folder_id === folder);
+  }, [files, folder]);
+
+  const counts = useMemo(() => {
+    const byFolder: Record<string, number> = {};
+    let unfiled = 0;
+    for (const f of files) {
+      if (f.folder_id) byFolder[f.folder_id] = (byFolder[f.folder_id] || 0) + 1;
+      else unfiled++;
+    }
+    return { all: files.length, unfiled, byFolder };
+  }, [files]);
 
   const onDrop = useCallback(async (accepted: File[]) => {
     if (!user) return;
@@ -72,6 +92,7 @@ function UploadsPage() {
           size_bytes: f.size,
           storage_path: path,
           text_content: text.slice(0, 500_000),
+          folder_id: typeof folder === "string" && folder !== "all" && folder !== "unfiled" ? folder : null,
         });
         if (insErr) toast.error(insErr.message);
         else toast.success(`Uploaded ${f.name}`);
@@ -80,14 +101,14 @@ function UploadsPage() {
     } finally {
       setBusy(false);
     }
-  }, [user, load]);
+  }, [user, load, folder]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "text/plain": [".txt"], "text/markdown": [".md", ".markdown"] },
   });
 
-  const remove = async (id: string, path?: string) => {
+  const remove = async (id: string, path?: string | null) => {
     if (path) await supabase.storage.from("uploads").remove([path]);
     await supabase.from("files").delete().eq("id", id);
     await load();
@@ -109,6 +130,10 @@ function UploadsPage() {
         }
       );
       if (!res.ok) throw new Error(await res.text());
+      if (file.folder_id) {
+        await supabase.from("summaries").update({ folder_id: file.folder_id })
+          .eq("file_id", file.id).is("folder_id", null);
+      }
       toast.success("Summary ready");
     } catch (e: any) {
       toast.error(e.message || "Failed");
@@ -118,42 +143,53 @@ function UploadsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div>
         <h1 className="font-display text-3xl font-semibold">Uploads</h1>
         <p className="text-sm text-muted-foreground">Drop your notes — we'll generate summaries, flashcards, and quizzes.</p>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        {...(getRootProps() as any)}
-        className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-border bg-card/40"}`}
-      >
-        <input {...getInputProps()} />
-        <UploadIcon className="mx-auto mb-3 h-10 w-10 text-primary" />
-        <p className="font-medium">{isDragActive ? "Drop here" : "Drag & drop or click to upload"}</p>
-        <p className="mt-1 text-xs text-muted-foreground">.txt, .md (PDF/DOCX coming soon)</p>
-        {busy && <div className="absolute inset-0 grid place-items-center rounded-2xl bg-background/60"><Loader2 className="h-6 w-6 animate-spin" /></div>}
-      </motion.div>
+      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+        <FoldersPanel selected={folder} onSelect={setFolder} counts={counts} />
 
-      <div className="grid gap-3">
-        {files.map((f) => (
-          <Card key={f.id} className="flex items-center gap-3 p-4">
-            <FileText className="h-5 w-5 text-ai" />
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-medium">{f.name}</div>
-              <div className="text-xs text-muted-foreground">{(f.size_bytes ?? 0) / 1000} kB · {new Date(f.created_at).toLocaleString()}</div>
-            </div>
-            <Badge variant="secondary">{f.type}</Badge>
-            <Button size="sm" onClick={() => summarize(f)} disabled={processingId === f.id}>
-              {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize</>}
-            </Button>
-            <Button size="icon" variant="ghost" onClick={() => remove(f.id)}><Trash2 className="h-4 w-4" /></Button>
-          </Card>
-        ))}
-        {files.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground">No files yet. <Link to="/dashboard" className="text-primary underline">Back</Link></p>
-        )}
+        <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            {...(getRootProps() as any)}
+            className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-border bg-card/40"}`}
+          >
+            <input {...getInputProps()} />
+            <UploadIcon className="mx-auto mb-3 h-10 w-10 text-primary" />
+            <p className="font-medium">{isDragActive ? "Drop here" : "Drag & drop or click to upload"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">.txt, .md (PDF/DOCX coming soon)</p>
+            {busy && <div className="absolute inset-0 grid place-items-center rounded-2xl bg-background/60"><Loader2 className="h-6 w-6 animate-spin" /></div>}
+          </motion.div>
+
+          <div className="grid gap-3">
+            {filtered.map((f) => (
+              <Card key={f.id} className="flex items-center gap-3 p-4">
+                <FileText className="h-5 w-5 text-ai" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{f.name}</div>
+                  <div className="text-xs text-muted-foreground">{(f.size_bytes ?? 0) / 1000} kB · {new Date(f.created_at).toLocaleString()}</div>
+                </div>
+                <Badge variant="secondary">{f.type}</Badge>
+                <MoveToFolder table="files" id={f.id} currentFolderId={f.folder_id} onMoved={load} />
+                <Button size="sm" onClick={() => summarize(f)} disabled={processingId === f.id}>
+                  {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize</>}
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => remove(f.id, f.storage_path)}><Trash2 className="h-4 w-4" /></Button>
+              </Card>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground">
+                {files.length === 0
+                  ? <>No files yet. <Link to="/dashboard" className="text-primary underline">Back</Link></>
+                  : "No files in this folder."}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
