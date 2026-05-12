@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import { FoldersPanel, MoveToFolder } from "@/components/FoldersPanel";
 
 export const Route = createFileRoute("/_authenticated/summaries")({
   component: SummariesPage,
@@ -19,27 +20,47 @@ type Row = {
   word_count: number | null;
   created_at: string;
   file_id: string;
+  folder_id: string | null;
 };
 
 function SummariesPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [active, setActive] = useState<Row | null>(null);
+  const [folder, setFolder] = useState<"all" | "unfiled" | string>("all");
 
-  useEffect(() => {
-    supabase
-      .from("summaries")
-      .select("id,type,content,word_count,created_at,file_id")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setRows((data as Row[]) ?? []));
-  }, []);
+  const load = () => supabase
+    .from("summaries")
+    .select("id,type,content,word_count,created_at,file_id,folder_id")
+    .order("created_at", { ascending: false })
+    .then(({ data }) => setRows((data as Row[]) ?? []));
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    if (folder === "all") return rows;
+    if (folder === "unfiled") return rows.filter((r) => !r.folder_id);
+    return rows.filter((r) => r.folder_id === folder);
+  }, [rows, folder]);
+
+  const counts = useMemo(() => {
+    const byFolder: Record<string, number> = {};
+    let unfiled = 0;
+    for (const r of rows) {
+      if (r.folder_id) byFolder[r.folder_id] = (byFolder[r.folder_id] || 0) + 1;
+      else unfiled++;
+    }
+    return { all: rows.length, unfiled, byFolder };
+  }, [rows]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl p-6">
+    <div className="mx-auto w-full max-w-7xl p-6">
       <h1 className="font-display text-3xl font-semibold">Summaries</h1>
       <p className="mb-6 text-sm text-muted-foreground">AI-generated summaries from your uploads.</p>
-      <div className="grid gap-4 md:grid-cols-[320px_1fr]">
+      <div className="grid gap-6 md:grid-cols-[200px_300px_1fr]">
+        <FoldersPanel selected={folder} onSelect={setFolder} counts={counts} />
+
         <div className="space-y-2">
-          {rows.map((r) => (
+          {filtered.map((r) => (
             <motion.button
               key={r.id} whileHover={{ x: 2 }}
               onClick={() => setActive(r)}
@@ -55,14 +76,18 @@ function SummariesPage() {
               </div>
             </motion.button>
           ))}
-          {rows.length === 0 && <p className="text-sm text-muted-foreground">No summaries yet. <Link to="/uploads" className="text-primary underline">Upload a note</Link>.</p>}
+          {filtered.length === 0 && <p className="text-sm text-muted-foreground">{rows.length === 0 ? <>No summaries yet. <Link to="/uploads" className="text-primary underline">Upload a note</Link>.</> : "Empty folder."}</p>}
         </div>
+
         <Card className="p-6">
           {active ? (
             <>
               <div className="mb-3 flex items-center justify-between">
                 <Badge variant="secondary">{active.type}</Badge>
-                <BookmarkButton entityType="summary" entityId={active.id} />
+                <div className="flex items-center gap-1">
+                  <MoveToFolder table="summaries" id={active.id} currentFolderId={active.folder_id} onMoved={load} />
+                  <BookmarkButton entityType="summary" entityId={active.id} />
+                </div>
               </div>
               <article className="prose prose-invert max-w-none prose-headings:font-display">
                 <ReactMarkdown>{active.content}</ReactMarkdown>
