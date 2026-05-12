@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, Loader2, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FoldersPanel, MoveToFolder } from "@/components/FoldersPanel";
 
 export const Route = createFileRoute("/_authenticated/quizzes")({ component: QuizzesPage });
 
-type Quiz = { id: string; title: string; difficulty: string; created_at: string };
+type Quiz = { id: string; title: string; difficulty: string; created_at: string; folder_id: string | null };
 type Question = { id: string; stem: string; options: string[]; answer: string; explanation: string };
-type FileOpt = { id: string; name: string };
+type FileOpt = { id: string; name: string; folder_id: string | null };
 
 function QuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -25,17 +26,34 @@ function QuizzesPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [folder, setFolder] = useState<"all" | "unfiled" | string>("all");
 
   const load = async () => {
     const { data } = await supabase.from("quizzes")
-      .select("id,title,difficulty,created_at").order("created_at", { ascending: false });
+      .select("id,title,difficulty,created_at,folder_id").order("created_at", { ascending: false });
     setQuizzes((data as Quiz[]) ?? []);
   };
   useEffect(() => {
     load();
-    supabase.from("files").select("id,name").order("created_at", { ascending: false })
+    supabase.from("files").select("id,name,folder_id").order("created_at", { ascending: false })
       .then(({ data }) => setFiles((data as FileOpt[]) ?? []));
   }, []);
+
+  const filtered = useMemo(() => {
+    if (folder === "all") return quizzes;
+    if (folder === "unfiled") return quizzes.filter((q) => !q.folder_id);
+    return quizzes.filter((q) => q.folder_id === folder);
+  }, [quizzes, folder]);
+
+  const counts = useMemo(() => {
+    const byFolder: Record<string, number> = {};
+    let unfiled = 0;
+    for (const q of quizzes) {
+      if (q.folder_id) byFolder[q.folder_id] = (byFolder[q.folder_id] || 0) + 1;
+      else unfiled++;
+    }
+    return { all: quizzes.length, unfiled, byFolder };
+  }, [quizzes]);
 
   const generate = async () => {
     if (!picked) return toast.error("Pick a file first");
@@ -49,6 +67,11 @@ function QuizzesPage() {
       });
       if (!r.ok) throw new Error(await r.text());
       const j = await r.json();
+      const file = files.find((f) => f.id === picked);
+      if (file?.folder_id) {
+        await supabase.from("quizzes").update({ folder_id: file.folder_id })
+          .eq("file_id", picked).is("folder_id", null);
+      }
       toast.success(`Quiz ready (${j.count} questions)`);
       await load();
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
@@ -81,7 +104,10 @@ function QuizzesPage() {
     return (
       <div className="mx-auto w-full max-w-3xl space-y-4 p-6">
         <Button variant="ghost" onClick={() => setActive(null)}>← Back</Button>
-        <h1 className="font-display text-2xl font-semibold">{active.title}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl font-semibold">{active.title}</h1>
+          <MoveToFolder table="quizzes" id={active.id} currentFolderId={active.folder_id} onMoved={load} />
+        </div>
         <Badge>{active.difficulty}</Badge>
         {submitted && (
           <Card className="p-4 text-center">
@@ -126,11 +152,11 @@ function QuizzesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold">Quizzes</h1>
-          <p className="text-sm text-muted-foreground">{quizzes.length} quizzes</p>
+          <p className="text-sm text-muted-foreground">{filtered.length} quizzes</p>
         </div>
         <div className="flex gap-2">
           <Select value={picked} onValueChange={setPicked}>
@@ -150,19 +176,24 @@ function QuizzesPage() {
           </Button>
         </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {quizzes.map(q => (
-          <motion.div key={q.id} whileHover={{ y: -2 }}>
-            <Card className="cursor-pointer p-4" onClick={() => open(q)}>
-              <div className="flex items-start justify-between">
-                <h3 className="font-medium">{q.title}</h3>
-                <Badge variant="secondary">{q.difficulty}</Badge>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">{new Date(q.created_at).toLocaleString()}</p>
-            </Card>
-          </motion.div>
-        ))}
-        {quizzes.length === 0 && <p className="text-sm text-muted-foreground">No quizzes yet. <Link to="/uploads" className="text-primary underline">Upload a note</Link>.</p>}
+
+      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+        <FoldersPanel selected={folder} onSelect={setFolder} counts={counts} />
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {filtered.map(q => (
+            <motion.div key={q.id} whileHover={{ y: -2 }}>
+              <Card className="cursor-pointer p-4" onClick={() => open(q)}>
+                <div className="flex items-start justify-between">
+                  <h3 className="font-medium">{q.title}</h3>
+                  <Badge variant="secondary">{q.difficulty}</Badge>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{new Date(q.created_at).toLocaleString()}</p>
+              </Card>
+            </motion.div>
+          ))}
+          {filtered.length === 0 && <p className="text-sm text-muted-foreground">{quizzes.length === 0 ? <>No quizzes yet. <Link to="/uploads" className="text-primary underline">Upload a note</Link>.</> : "No quizzes in this folder."}</p>}
+        </div>
       </div>
     </div>
   );
