@@ -63,14 +63,15 @@ Deno.serve(async (req) => {
     if (!text.trim()) return new Response("File has no text", { status: 400, headers: cors });
 
     if (action === "summary") {
-      const prompt = SUMMARY_PROMPTS[summaryType] ?? SUMMARY_PROMPTS.concise;
+      const normalizedType = SUMMARY_TYPE_MAP[summaryType] ?? "SHORT";
+      const prompt = SUMMARY_PROMPTS[normalizedType] ?? SUMMARY_PROMPTS.SHORT;
       const content = await callAI([
         { role: "system", content: "You are NeuroNote, a study assistant. Output clean markdown only." },
         { role: "user", content: `${prompt}\n\nSOURCE:\n${text}` },
       ]);
       const wc = content.split(/\s+/).length;
       const { data: ins, error: insErr } = await supabase.from("summaries")
-        .insert({ user_id: userId, file_id: file.id, type: summaryType, content, word_count: wc })
+        .insert({ user_id: userId, file_id: file.id, type: normalizedType, content, word_count: wc })
         .select().single();
       if (insErr) throw insErr;
       return new Response(JSON.stringify({ ok: true, summary: ins }), { headers: { ...cors, "Content-Type": "application/json" } });
