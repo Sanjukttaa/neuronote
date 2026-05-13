@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Upload as UploadIcon, FileText, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,7 +165,7 @@ function UploadsPage() {
     await load();
   };
 
-  const summarize = async (file: FileRow) => {
+  const summarize = async (file: FileRow, summaryType: "SHORT" | "MEDIUM" | "LONG" = "SHORT") => {
     setProcessingId(file.id);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -175,7 +177,7 @@ function UploadsPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.session?.access_token}`,
           },
-          body: JSON.stringify({ action: "summary", fileId: file.id, summaryType: "concise" }),
+          body: JSON.stringify({ action: "summary", fileId: file.id, summaryType }),
         }
       );
       if (!res.ok) throw new Error(await res.text());
@@ -183,7 +185,7 @@ function UploadsPage() {
         await supabase.from("summaries").update({ folder_id: file.folder_id })
           .eq("file_id", file.id).is("folder_id", null);
       }
-      toast.success("Summary ready");
+      toast.success(`${summaryType[0]}${summaryType.slice(1).toLowerCase()} summary ready`);
     } catch (e: any) {
       toast.error(e.message || "Failed");
     } finally {
@@ -224,9 +226,18 @@ function UploadsPage() {
                 </div>
                 <Badge variant="secondary">{f.type}</Badge>
                 <MoveToFolder table="files" id={f.id} currentFolderId={f.folder_id} onMoved={load} />
-                <Button size="sm" onClick={() => summarize(f)} disabled={processingId === f.id}>
-                  {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize</>}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" disabled={processingId === f.id}>
+                      {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize<ChevronDown className="ml-1 h-3 w-3" /></>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => summarize(f, "SHORT")}>Short (~150 words)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => summarize(f, "MEDIUM")}>Medium (~400 words)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => summarize(f, "LONG")}>Long (~900 words)</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button size="icon" variant="ghost" onClick={() => remove(f.id, f.storage_path)}><Trash2 className="h-4 w-4" /></Button>
               </Card>
             ))}

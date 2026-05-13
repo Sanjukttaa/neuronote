@@ -9,16 +9,19 @@ const cors = {
 };
 
 const SUMMARY_PROMPTS: Record<string, string> = {
-  SHORT: "Write a concise 200-word summary in markdown with a brief intro and 3-5 key bullets.",
+  SHORT: "Write a SHORT summary (~150 words) in markdown: 1-sentence intro and 3-5 key bullets.",
+  MEDIUM: "Write a MEDIUM-length summary (~400 words) in markdown with a brief intro, key concepts as bold inline labels, and clear paragraphs.",
+  LONG: "Write a LONG, comprehensive summary (~900 words) in markdown with section headings, key concepts, examples, and a final takeaways list.",
   DETAILED: "Write a detailed markdown summary with headings, key concepts, and examples.",
   BULLETS: "Return a markdown bulleted outline of the key points.",
   KEY_CONCEPTS: "List and explain the key concepts in friendly markdown.",
   EXAM: "Write an exam-style cheat sheet in markdown: definitions, formulas, must-know facts.",
 };
 
-// Map legacy/lowercase types to enum values
 const SUMMARY_TYPE_MAP: Record<string, string> = {
   concise: "SHORT", short: "SHORT", SHORT: "SHORT",
+  medium: "MEDIUM", MEDIUM: "MEDIUM",
+  long: "LONG", LONG: "LONG",
   detailed: "DETAILED", DETAILED: "DETAILED",
   bullets: "BULLETS", BULLETS: "BULLETS",
   eli5: "KEY_CONCEPTS", key_concepts: "KEY_CONCEPTS", KEY_CONCEPTS: "KEY_CONCEPTS",

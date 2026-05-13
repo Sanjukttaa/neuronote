@@ -598,7 +598,14 @@ export type Database = {
       chat_role: "USER" | "ASSISTANT"
       question_type: "MCQ" | "TRUE_FALSE" | "FILL"
       quiz_difficulty: "EASY" | "MEDIUM" | "HARD"
-      summary_type: "SHORT" | "DETAILED" | "EXAM" | "BULLETS" | "KEY_CONCEPTS"
+      summary_type:
+        | "SHORT"
+        | "DETAILED"
+        | "EXAM"
+        | "BULLETS"
+        | "KEY_CONCEPTS"
+        | "MEDIUM"
+        | "LONG"
       task_priority: "HIGH" | "MEDIUM" | "LOW"
     }
     CompositeTypes: {
@@ -730,7 +737,15 @@ export const Constants = {
       chat_role: ["USER", "ASSISTANT"],
       question_type: ["MCQ", "TRUE_FALSE", "FILL"],
       quiz_difficulty: ["EASY", "MEDIUM", "HARD"],
-      summary_type: ["SHORT", "DETAILED", "EXAM", "BULLETS", "KEY_CONCEPTS"],
+      summary_type: [
+        "SHORT",
+        "DETAILED",
+        "EXAM",
+        "BULLETS",
+        "KEY_CONCEPTS",
+        "MEDIUM",
+        "LONG",
+      ],
       task_priority: ["HIGH", "MEDIUM", "LOW"],
     },
   },
