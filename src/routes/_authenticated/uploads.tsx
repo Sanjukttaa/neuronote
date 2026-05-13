@@ -36,6 +36,41 @@ async function readFileAsText(file: File): Promise<string> {
   });
 }
 
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjs: any = await import("pdfjs-dist");
+  // @ts-ignore
+  const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+  pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  let out = "";
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    out += content.items.map((it: any) => it.str).join(" ") + "\n\n";
+  }
+  return out;
+}
+
+async function extractPptxText(file: File): Promise<string> {
+  const JSZip = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const slideFiles = Object.keys(zip.files)
+    .filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a, b) => {
+      const na = parseInt(a.match(/slide(\d+)/)![1]);
+      const nb = parseInt(b.match(/slide(\d+)/)![1]);
+      return na - nb;
+    });
+  let out = "";
+  for (const name of slideFiles) {
+    const xml = await zip.files[name].async("string");
+    const text = xml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    out += text + "\n\n";
+  }
+  return out;
+}
+
 function UploadsPage() {
   const { user } = useAuth();
   const [files, setFiles] = useState<FileRow[]>([]);
@@ -76,15 +111,23 @@ function UploadsPage() {
     try {
       for (const f of accepted) {
         const ext = f.name.split(".").pop()?.toLowerCase() || "";
-        const allowed = ["txt", "md", "markdown"];
+        const allowed = ["txt", "md", "markdown", "pdf", "pptx", "png", "jpg", "jpeg", "webp", "gif"];
         if (!allowed.includes(ext)) {
-          toast.error(`${f.name}: only .txt and .md supported right now`);
+          toast.error(`${f.name}: unsupported file type`);
           continue;
         }
         const path = `${user.id}/${crypto.randomUUID()}-${f.name}`;
         const { error: upErr } = await supabase.storage.from("uploads").upload(path, f);
         if (upErr) { toast.error(upErr.message); continue; }
-        const text = await readFileAsText(f);
+        let text = "";
+        try {
+          if (ext === "pdf") text = await extractPdfText(f);
+          else if (ext === "pptx") text = await extractPptxText(f);
+          else if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) text = "";
+          else text = await readFileAsText(f);
+        } catch (e: any) {
+          toast.error(`${f.name}: extraction failed — ${e.message}`);
+        }
         const { error: insErr } = await supabase.from("files").insert({
           user_id: user.id,
           name: f.name,
@@ -105,7 +148,13 @@ function UploadsPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "text/plain": [".txt"], "text/markdown": [".md", ".markdown"] },
+    accept: {
+      "text/plain": [".txt"],
+      "text/markdown": [".md", ".markdown"],
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"],
+    },
   });
 
   const remove = async (id: string, path?: string | null) => {
@@ -161,7 +210,7 @@ function UploadsPage() {
             <input {...getInputProps()} />
             <UploadIcon className="mx-auto mb-3 h-10 w-10 text-primary" />
             <p className="font-medium">{isDragActive ? "Drop here" : "Drag & drop or click to upload"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">.txt, .md (PDF/DOCX coming soon)</p>
+            <p className="mt-1 text-xs text-muted-foreground">.txt, .md, .pdf, .pptx, images</p>
             {busy && <div className="absolute inset-0 grid place-items-center rounded-2xl bg-background/60"><Loader2 className="h-6 w-6 animate-spin" /></div>}
           </motion.div>
 
