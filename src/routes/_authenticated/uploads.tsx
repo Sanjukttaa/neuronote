@@ -111,15 +111,23 @@ function UploadsPage() {
     try {
       for (const f of accepted) {
         const ext = f.name.split(".").pop()?.toLowerCase() || "";
-        const allowed = ["txt", "md", "markdown"];
+        const allowed = ["txt", "md", "markdown", "pdf", "pptx", "png", "jpg", "jpeg", "webp", "gif"];
         if (!allowed.includes(ext)) {
-          toast.error(`${f.name}: only .txt and .md supported right now`);
+          toast.error(`${f.name}: unsupported file type`);
           continue;
         }
         const path = `${user.id}/${crypto.randomUUID()}-${f.name}`;
         const { error: upErr } = await supabase.storage.from("uploads").upload(path, f);
         if (upErr) { toast.error(upErr.message); continue; }
-        const text = await readFileAsText(f);
+        let text = "";
+        try {
+          if (ext === "pdf") text = await extractPdfText(f);
+          else if (ext === "pptx") text = await extractPptxText(f);
+          else if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) text = "";
+          else text = await readFileAsText(f);
+        } catch (e: any) {
+          toast.error(`${f.name}: extraction failed — ${e.message}`);
+        }
         const { error: insErr } = await supabase.from("files").insert({
           user_id: user.id,
           name: f.name,
@@ -140,7 +148,13 @@ function UploadsPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "text/plain": [".txt"], "text/markdown": [".md", ".markdown"] },
+    accept: {
+      "text/plain": [".txt"],
+      "text/markdown": [".md", ".markdown"],
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"],
+    },
   });
 
   const remove = async (id: string, path?: string | null) => {
