@@ -36,6 +36,41 @@ async function readFileAsText(file: File): Promise<string> {
   });
 }
 
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjs: any = await import("pdfjs-dist");
+  // @ts-ignore
+  const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+  pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  let out = "";
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    out += content.items.map((it: any) => it.str).join(" ") + "\n\n";
+  }
+  return out;
+}
+
+async function extractPptxText(file: File): Promise<string> {
+  const JSZip = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const slideFiles = Object.keys(zip.files)
+    .filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a, b) => {
+      const na = parseInt(a.match(/slide(\d+)/)![1]);
+      const nb = parseInt(b.match(/slide(\d+)/)![1]);
+      return na - nb;
+    });
+  let out = "";
+  for (const name of slideFiles) {
+    const xml = await zip.files[name].async("string");
+    const text = xml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    out += text + "\n\n";
+  }
+  return out;
+}
+
 function UploadsPage() {
   const { user } = useAuth();
   const [files, setFiles] = useState<FileRow[]>([]);
