@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         const gateway = createLovableAiGatewayProvider(key);
-        const model = gateway("google/gemini-3-flash-preview");
+        const model = gateway("google/gemini-2.5-flash");
         const system = `You are NeuroNote, a friendly study tutor. Answer based on the user's notes when provided. Cite specifics from the source. Use markdown.${context}`;
 
         const result = streamText({
