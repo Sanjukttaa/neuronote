@@ -9,11 +9,20 @@ const cors = {
 };
 
 const SUMMARY_PROMPTS: Record<string, string> = {
-  concise: "Write a concise 200-word summary in markdown with a brief intro and 3-5 key bullets.",
-  detailed: "Write a detailed markdown summary with headings, key concepts, and examples.",
-  bullets: "Return a markdown bulleted outline of the key points.",
-  eli5: "Explain this like I'm five, in friendly markdown.",
-  exam: "Write an exam-style cheat sheet in markdown: definitions, formulas, must-know facts.",
+  SHORT: "Write a concise 200-word summary in markdown with a brief intro and 3-5 key bullets.",
+  DETAILED: "Write a detailed markdown summary with headings, key concepts, and examples.",
+  BULLETS: "Return a markdown bulleted outline of the key points.",
+  KEY_CONCEPTS: "List and explain the key concepts in friendly markdown.",
+  EXAM: "Write an exam-style cheat sheet in markdown: definitions, formulas, must-know facts.",
+};
+
+// Map legacy/lowercase types to enum values
+const SUMMARY_TYPE_MAP: Record<string, string> = {
+  concise: "SHORT", short: "SHORT", SHORT: "SHORT",
+  detailed: "DETAILED", DETAILED: "DETAILED",
+  bullets: "BULLETS", BULLETS: "BULLETS",
+  eli5: "KEY_CONCEPTS", key_concepts: "KEY_CONCEPTS", KEY_CONCEPTS: "KEY_CONCEPTS",
+  exam: "EXAM", EXAM: "EXAM",
 };
 
 async function callAI(messages: any[], model = "google/gemini-2.5-flash") {
