@@ -226,9 +226,18 @@ function UploadsPage() {
                 </div>
                 <Badge variant="secondary">{f.type}</Badge>
                 <MoveToFolder table="files" id={f.id} currentFolderId={f.folder_id} onMoved={load} />
-                <Button size="sm" onClick={() => summarize(f)} disabled={processingId === f.id}>
-                  {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize</>}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" disabled={processingId === f.id}>
+                      {processingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 h-4 w-4" />Summarize<ChevronDown className="ml-1 h-3 w-3" /></>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => summarize(f, "SHORT")}>Short (~150 words)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => summarize(f, "MEDIUM")}>Medium (~400 words)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => summarize(f, "LONG")}>Long (~900 words)</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button size="icon" variant="ghost" onClick={() => remove(f.id, f.storage_path)}><Trash2 className="h-4 w-4" /></Button>
               </Card>
             ))}
