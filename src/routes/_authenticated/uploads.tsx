@@ -163,7 +163,7 @@ function UploadsPage() {
     await load();
   };
 
-  const summarize = async (file: FileRow) => {
+  const summarize = async (file: FileRow, summaryType: "SHORT" | "MEDIUM" | "LONG" = "SHORT") => {
     setProcessingId(file.id);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -175,7 +175,7 @@ function UploadsPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.session?.access_token}`,
           },
-          body: JSON.stringify({ action: "summary", fileId: file.id, summaryType: "concise" }),
+          body: JSON.stringify({ action: "summary", fileId: file.id, summaryType }),
         }
       );
       if (!res.ok) throw new Error(await res.text());
@@ -183,7 +183,7 @@ function UploadsPage() {
         await supabase.from("summaries").update({ folder_id: file.folder_id })
           .eq("file_id", file.id).is("folder_id", null);
       }
-      toast.success("Summary ready");
+      toast.success(`${summaryType[0]}${summaryType.slice(1).toLowerCase()} summary ready`);
     } catch (e: any) {
       toast.error(e.message || "Failed");
     } finally {
