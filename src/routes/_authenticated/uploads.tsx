@@ -210,7 +210,7 @@ function UploadsPage() {
             <input {...getInputProps()} />
             <UploadIcon className="mx-auto mb-3 h-10 w-10 text-primary" />
             <p className="font-medium">{isDragActive ? "Drop here" : "Drag & drop or click to upload"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">.txt, .md (PDF/DOCX coming soon)</p>
+            <p className="mt-1 text-xs text-muted-foreground">.txt, .md, .pdf, .pptx, images</p>
             {busy && <div className="absolute inset-0 grid place-items-center rounded-2xl bg-background/60"><Loader2 className="h-6 w-6 animate-spin" /></div>}
           </motion.div>
 
