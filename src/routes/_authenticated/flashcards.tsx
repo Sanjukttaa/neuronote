@@ -59,13 +59,12 @@ function FlashcardsPage() {
     return Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [folderCards, files]);
 
-  // Auto-select first deck
+  // Auto-select first deck (only when current selection becomes invalid)
   useEffect(() => {
-    if (!activeDeck && decks.length > 0) setActiveDeck(decks[0].key);
-    if (activeDeck && !decks.find((d) => d.key === activeDeck)) {
-      setActiveDeck(decks[0]?.key ?? null);
+    if (decks.length === 0) { if (activeDeck) setActiveDeck(null); return; }
+    if (!activeDeck || !decks.find((d) => d.key === activeDeck)) {
+      setActiveDeck(decks[0].key);
     }
-    setIdx(0); setFlipped(false);
   }, [decks, activeDeck]);
 
   const activeCards = useMemo(
